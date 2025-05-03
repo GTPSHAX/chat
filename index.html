@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kirim Pesan ke Discord</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #1e1e1e;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    textarea, button {
+      width: 100%;
+      max-width: 500px;
+      margin-top: 1rem;
+      font-size: 1rem;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 6px;
+    }
+    textarea {
+      resize: vertical;
+      height: 150px;
+      background: #2e2e2e;
+      color: white;
+    }
+    button {
+      background-color: #5865F2;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #4752C4;
+    }
+  </style>
+</head>
+<body>
+  <h2>Kirim Pesan ke Discord Webhook</h2>
+  <textarea id="messageInput" placeholder="Tulis pesan di sini..."></textarea>
+  <button onclick="kirimPesan()">Kirim</button>
+
+  <script>
+    async function kirimPesan() {
+      const isiPesan = document.getElementById("messageInput").value;
+      const webhookUrl = "https://discord.com/api/webhooks/1305239303458258985/TdpYgj-teiUwNg1ZYVepvXKK-5nZ7ZyYPjdMUJ9sI8-PP5T9eRdai4laEkQpAtiZyYwE";
+
+      const mention = "<@691148414641111121> @everyone @here";
+
+      const payload = {
+        content: `${mention}\n${isiPesan}`
+      };
+
+      try {
+        const response = await fetch(webhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          alert("Pesan berhasil dikirim!");
+        } else {
+          alert("Gagal mengirim pesan. Cek URL webhook atau izin mention.");
+        }
+      } catch (err) {
+        alert("Terjadi kesalahan saat mengirim pesan.");
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
