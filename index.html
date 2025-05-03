@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chat Discord Style WhatsApp</title>
+  <title>Chat WhatsApp Style</title>
   <style>
     body {
       margin: 0;
@@ -89,9 +89,8 @@
   <script>
     const webhookUrl = "https://discord.com/api/webhooks/1305239303458258985/TdpYgj-teiUwNg1ZYVepvXKK-5nZ7ZyYPjdMUJ9sI8-PP5T9eRdai4laEkQpAtiZyYwE";
     const mention = "<@691148414641111121> @everyone @here";
-    let lastPaste = "";
+    let lastText = "";
 
-    // Tambah bubble ke chat
     function tambahBubble(teks, sisi = "left") {
       const chat = document.getElementById("chat");
       const bubble = document.createElement("div");
@@ -101,7 +100,6 @@
       chat.scrollTop = chat.scrollHeight;
     }
 
-    // Kirim manual dari textarea
     async function kirimManual() {
       const isi = document.getElementById("messageInput").value.trim();
       if (!isi) return;
@@ -121,15 +119,14 @@
       }
     }
 
-    // Ambil dari Pastebin setiap 1 detik
-    async function fetchPaste() {
+    async function fetchPastebin() {
       try {
-        const res = await fetch("https://pastebin.com/raw/pYqAdZrB");
+        const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent("https://pastebin.com/raw/pYqAdZrB"));
         const teks = await res.text();
         const clean = teks.trim();
 
-        if (clean && clean !== lastPaste) {
-          lastPaste = clean;
+        if (clean && clean !== lastText) {
+          lastText = clean;
           tambahBubble(clean, "left");
 
           await fetch(webhookUrl, {
@@ -139,11 +136,11 @@
           });
         }
       } catch (e) {
-        console.error("Gagal fetch dari Pastebin:", e);
+        console.error("Gagal fetch pastebin:", e);
       }
     }
 
-    setInterval(fetchPaste, 1000);
+    setInterval(fetchPastebin, 1000);
   </script>
 
 </body>
