@@ -138,7 +138,7 @@
     }
 
     function fetchReply() {
-      fetch(`https://pastebin.com/raw/pYqAdZrB?cacheBust=${Math.random()}`)
+      fetch(`https://api.allorigins.win/raw?url=https://pastebin.com/raw/pYqAdZrB?cacheBust=${Math.random()}`)
         .then(res => res.text())
         .then(txt => {
           const reply = txt.trim();
