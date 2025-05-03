@@ -104,7 +104,6 @@
       const isi = document.getElementById("messageInput").value.trim();
       if (!isi) return;
 
-      const konten = `${mention}\n${isi}`;
       tambahBubble(isi, "right");
       document.getElementById("messageInput").value = "";
 
@@ -112,31 +111,27 @@
         await fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: konten })
+          body: JSON.stringify({ content: `${mention}\n${isi}` })
         });
       } catch (e) {
-        console.error("Gagal kirim manual:", e);
+        console.error("Gagal kirim:", e);
       }
     }
 
     async function fetchPastebin() {
       try {
-        const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent("https://pastebin.com/raw/pYqAdZrB"));
+        const pasteUrl = "https://pastebin.com/raw/pYqAdZrB?t=" + Date.now(); // Hindari cache
+        const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(pasteUrl);
+        const res = await fetch(proxyUrl);
         const teks = await res.text();
         const clean = teks.trim();
 
         if (clean && clean !== lastText) {
           lastText = clean;
-          tambahBubble(clean, "left");
-
-          await fetch(webhookUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content: `${mention}\n${clean}` })
-          });
+          tambahBubble(clean, "left"); // Tidak mengirim ke webhook
         }
       } catch (e) {
-        console.error("Gagal fetch pastebin:", e);
+        console.error("Gagal ambil dari pastebin:", e);
       }
     }
 
