@@ -44,13 +44,13 @@
       border-bottom-right-radius: 0;
     }
 
-    .pending::after {
-      content: "⌛";
+    .pending svg {
+      width: 16px;
+      height: 16px;
       position: absolute;
-      bottom: 4px;
+      bottom: 6px;
       right: 10px;
-      font-size: 0.9em;
-      color: #ccc;
+      fill: #ccc;
     }
 
     #inputArea {
@@ -99,12 +99,33 @@
   <script>
     const webhookUrl = "https://discord.com/api/webhooks/1305239303458258985/TdpYgj-teiUwNg1ZYVepvXKK-5nZ7ZyYPjdMUJ9sI8-PP5T9eRdai4laEkQpAtiZyYwE";
     const mention = "<@691148414641111121> @everyone @here";
-    let lastText = "";
-    let fetchStarted = false;
-
-    // Load dari localStorage
     const chat = document.getElementById("chat");
     let chatData = JSON.parse(localStorage.getItem("chatData")) || [];
+    let lastPastebin = "";
+    let polling = false;
+    let waitingResponse = false;
+
+    function svgJam() {
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M12 1a11 11 0 1 0 11 11A11.013 11.013 0 0 0 12 1zm1 17h-2v-6h4v2h-2z"/>
+        </svg>
+      `;
+    }
+
+    function tambahBubble(teks, sisi = "left", pending = false) {
+      const bubble = document.createElement("div");
+      bubble.className = `bubble ${sisi}`;
+      bubble.textContent = teks;
+
+      if (pending) {
+        bubble.classList.add("pending");
+        bubble.innerHTML = `${teks}${svgJam()}`;
+      }
+
+      chat.appendChild(bubble);
+      chat.scrollTop = chat.scrollHeight;
+    }
 
     function renderChat() {
       chat.innerHTML = "";
@@ -113,27 +134,20 @@
       });
     }
 
-    function tambahBubble(teks, sisi = "left", pending = false) {
-      const bubble = document.createElement("div");
-      bubble.className = `bubble ${sisi}`;
-      if (pending) bubble.classList.add("pending");
-      bubble.textContent = teks;
-      chat.appendChild(bubble);
-      chat.scrollTop = chat.scrollHeight;
-    }
-
-    function simpanKeStorage(text, side, pending = false) {
-      chatData.push({ text, side, pending });
+    function simpan(teks, side, pending = false) {
+      chatData.push({ text: teks, side, pending });
       localStorage.setItem("chatData", JSON.stringify(chatData));
     }
 
     async function kirimManual() {
       const isi = document.getElementById("messageInput").value.trim();
-      if (!isi) return;
+      if (!isi || waitingResponse) return;
+
+      document.getElementById("messageInput").value = "";
+      waitingResponse = true;
 
       tambahBubble(isi, "right", true);
-      simpanKeStorage(isi, "right", true);
-      document.getElementById("messageInput").value = "";
+      simpan(isi, "right", true);
 
       try {
         await fetch(webhookUrl, {
@@ -142,27 +156,26 @@
           body: JSON.stringify({ content: `${mention}\n${isi}` })
         });
 
-        if (!fetchStarted) {
-          fetchStarted = true;
+        if (!polling) {
+          polling = true;
           setInterval(fetchPastebin, 1000);
         }
       } catch (e) {
-        console.error("Gagal kirim:", e);
+        console.error("Kirim gagal:", e);
       }
     }
 
     async function fetchPastebin() {
       try {
-        const pasteUrl = "https://pastebin.com/raw/pYqAdZrB?t=" + Date.now();
-        const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(pasteUrl);
-        const res = await fetch(proxyUrl);
-        const teks = await res.text();
-        const clean = teks.trim();
+        const url = "https://pastebin.com/raw/pYqAdZrB?t=" + Date.now();
+        const proxy = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+        const res = await fetch(proxy);
+        const teks = (await res.text()).trim();
 
-        if (clean && clean !== lastText) {
-          lastText = clean;
+        if (teks && teks !== lastPastebin) {
+          lastPastebin = teks;
 
-          // Update bubble terakhir yg pending
+          // Hapus bubble pending terakhir
           for (let i = chatData.length - 1; i >= 0; i--) {
             if (chatData[i].side === "right" && chatData[i].pending) {
               chatData[i].pending = false;
@@ -170,12 +183,13 @@
             }
           }
 
-          simpanKeStorage(clean, "left");
+          simpan(teks, "left");
           localStorage.setItem("chatData", JSON.stringify(chatData));
+          waitingResponse = false;
           renderChat();
         }
       } catch (e) {
-        console.error("Gagal fetch pastebin:", e);
+        console.error("Pastebin fetch gagal:", e);
       }
     }
 
