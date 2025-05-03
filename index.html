@@ -29,6 +29,7 @@
       padding: 0.75rem 1rem;
       border-radius: 1rem;
       word-wrap: break-word;
+      position: relative;
     }
 
     .left {
@@ -41,6 +42,15 @@
       align-self: flex-end;
       background-color: #005c4b;
       border-bottom-right-radius: 0;
+    }
+
+    .pending::after {
+      content: "⌛";
+      position: absolute;
+      bottom: 4px;
+      right: 10px;
+      font-size: 0.9em;
+      color: #ccc;
     }
 
     #inputArea {
@@ -90,21 +100,39 @@
     const webhookUrl = "https://discord.com/api/webhooks/1305239303458258985/TdpYgj-teiUwNg1ZYVepvXKK-5nZ7ZyYPjdMUJ9sI8-PP5T9eRdai4laEkQpAtiZyYwE";
     const mention = "<@691148414641111121> @everyone @here";
     let lastText = "";
+    let fetchStarted = false;
 
-    function tambahBubble(teks, sisi = "left") {
-      const chat = document.getElementById("chat");
+    // Load dari localStorage
+    const chat = document.getElementById("chat");
+    let chatData = JSON.parse(localStorage.getItem("chatData")) || [];
+
+    function renderChat() {
+      chat.innerHTML = "";
+      chatData.forEach(item => {
+        tambahBubble(item.text, item.side, item.pending);
+      });
+    }
+
+    function tambahBubble(teks, sisi = "left", pending = false) {
       const bubble = document.createElement("div");
       bubble.className = `bubble ${sisi}`;
+      if (pending) bubble.classList.add("pending");
       bubble.textContent = teks;
       chat.appendChild(bubble);
       chat.scrollTop = chat.scrollHeight;
+    }
+
+    function simpanKeStorage(text, side, pending = false) {
+      chatData.push({ text, side, pending });
+      localStorage.setItem("chatData", JSON.stringify(chatData));
     }
 
     async function kirimManual() {
       const isi = document.getElementById("messageInput").value.trim();
       if (!isi) return;
 
-      tambahBubble(isi, "right");
+      tambahBubble(isi, "right", true);
+      simpanKeStorage(isi, "right", true);
       document.getElementById("messageInput").value = "";
 
       try {
@@ -113,6 +141,11 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ content: `${mention}\n${isi}` })
         });
+
+        if (!fetchStarted) {
+          fetchStarted = true;
+          setInterval(fetchPastebin, 1000);
+        }
       } catch (e) {
         console.error("Gagal kirim:", e);
       }
@@ -120,7 +153,7 @@
 
     async function fetchPastebin() {
       try {
-        const pasteUrl = "https://pastebin.com/raw/pYqAdZrB?t=" + Date.now(); // Hindari cache
+        const pasteUrl = "https://pastebin.com/raw/pYqAdZrB?t=" + Date.now();
         const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(pasteUrl);
         const res = await fetch(proxyUrl);
         const teks = await res.text();
@@ -128,14 +161,25 @@
 
         if (clean && clean !== lastText) {
           lastText = clean;
-          tambahBubble(clean, "left"); // Tidak mengirim ke webhook
+
+          // Update bubble terakhir yg pending
+          for (let i = chatData.length - 1; i >= 0; i--) {
+            if (chatData[i].side === "right" && chatData[i].pending) {
+              chatData[i].pending = false;
+              break;
+            }
+          }
+
+          simpanKeStorage(clean, "left");
+          localStorage.setItem("chatData", JSON.stringify(chatData));
+          renderChat();
         }
       } catch (e) {
-        console.error("Gagal ambil dari pastebin:", e);
+        console.error("Gagal fetch pastebin:", e);
       }
     }
 
-    setInterval(fetchPastebin, 1000);
+    renderChat();
   </script>
 
 </body>
